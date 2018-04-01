@@ -46,7 +46,16 @@ void WebPage::processDoc(const string& doc,WordSegmentation& jieba)
 	_docContent = doc.substr(bpos + docContentHead.size(),
 			epos - bpos - docContentHead.size());
 	
-	//vector<string> wordsVec = jieba(_docContent.c_str());
+	vector<string> wordsVec = jieba(_docContent.c_str());
+
+	for(auto& word : wordsVec)
+	{
+		auto sit = jieba.getStopWordList().find(word);
+		if(sit == jieba.getStopWordList().end())
+			++_wordsMap[word];
+	}
+	
+	showKeywords();
 
 	_doc = doc;
 	jieba.getTopK(doc,_keyWords,TOPK_NUMBER);
@@ -54,7 +63,8 @@ void WebPage::processDoc(const string& doc,WordSegmentation& jieba)
 
 void WebPage::showKeywords() const
 {
-	cout << _keyWords << endl;
+	for(auto iter : _wordsMap)
+		cout << iter.first << " --> " << iter.second << endl;
 }
 
 uint64_t WebPage::getSimhash()

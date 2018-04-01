@@ -57,6 +57,7 @@ private:
 	//vector<string> _topWords;
 	vector<cppjieba::KeywordExtractor::Word> _keyWords;
 	map<string,int> _wordsMap;
+
 };
 
 

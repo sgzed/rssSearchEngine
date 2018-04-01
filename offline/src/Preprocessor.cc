@@ -7,6 +7,7 @@
 #include "../include/Preprocessor.h"
 #include "../include/MyConf.h"
 
+#include <math.h>
 #include <fstream>
 #include <sstream>
 using std::ofstream;
@@ -14,6 +15,7 @@ using std::ifstream;
 using std::stringstream;
 
 Preprocessor::Preprocessor()
+	:_jieba()
 {
 }
 
@@ -22,6 +24,8 @@ void Preprocessor::doProcess()
 	readInfoFromFile();
 
 	cutRedundantPages();
+
+	buildInvertIndexTable();
 
 	storeOnDisk();
 }
@@ -112,6 +116,54 @@ void Preprocessor::cutRedundantPages()
 }
 
 
+void Preprocessor::buildInvertIndexTable()
+{
+	for(auto page : _pageLib)	
+	{
+		map<string,int>& wordsMap = page.getWordsMap();
+		for(auto wordFreq : wordsMap)	
+		{
+			_invertIndexTable[wordFreq.first].push_back(std::make_pair(
+						page.getDocId(),wordFreq.second));	
+		}
+	}
+	map<int,double> weightSum;
+
+	int totalPageNum = _pageLib.size();
+	for(auto& item : _invertIndexTable)
+	{
+		int df = item.second.size();
+		double idf=log(static_cast<double>(totalPageNum)/df)/log(2)+1;
+
+		for(auto& sitem : item.second)
+		{
+			double weight = sitem.second*idf;
+			weightSum[sitem.first] += pow(weight,2);
+			sitem.second = weight;
+		}
+	}
+
+	for(auto & iter : _invertIndexTable)
+	{
+		for(auto & sitem : iter.second)
+		{
+			sitem.second = sitem.second/sqrt(weightSum[sitem.first]);
+		}
+	}
+
+#if 1
+	for(auto iter : _invertIndexTable)
+	{
+		cout << iter.first << "\t" ;
+		for(auto siter : iter.second)
+			cout << siter.first << "\t" << siter.second << "\t";
+		cout << endl;
+	}
+
+#endif
+
+}
+
 void Preprocessor::storeOnDisk()
 {
 	auto confMap = MyConf::getInstance()->getConfigMap();
@@ -140,6 +192,27 @@ void Preprocessor::storeOnDisk()
 
 	ofsPageLib.close();
 	offsetLib.close();
+
+	string invertIndexPath = confMap["invertindexlib"];
+	cout << "invertIndexPath = "  << invertIndexPath << endl;
+	ofstream invertofs(invertIndexPath.c_str());
+	if(!invertofs.good())
+	{
+		cout << "open invertIndexPath failed" << endl;
+		return ;
+	}
+
+	for(auto iter : _invertIndexTable)
+	{
+		invertofs << iter.first << "\t";
+		for(auto siter : iter.second)
+		{
+			invertofs << siter.first << "\t" << siter.second << "\t" ;
+		}
+		invertofs << endl;
+	}
+
+	invertofs.close();
 }
 
 

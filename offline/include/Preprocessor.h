@@ -36,12 +36,16 @@ public:
 private:
 	void readInfoFromFile();
 	void cutRedundantPages();
+		
+	void buildInvertIndexTable();
 
 	void storeOnDisk();
 private:
 	WordSegmentation _jieba;
 	vector<WebPage> _pageLib;
 	unordered_map<int,pair<int,int>> _offsetLib;
+
+	unordered_map<string,vector<pair<int,double>>> _invertIndexTable;
 };
 
 

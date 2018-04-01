@@ -13,9 +13,9 @@ int main()
 {
 	MyConf::getInstance()->show();
 
-	RssReader rssrd;
-	rssrd.loadFeedFiles();
-	rssrd.dump();
+//	RssReader rssrd;
+//	rssrd.loadFeedFiles();
+//	rssrd.dump();
 	
 	Preprocessor processor = Preprocessor();
 	processor.doProcess();
