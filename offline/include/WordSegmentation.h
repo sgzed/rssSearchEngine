@@ -55,7 +55,7 @@ class WordSegmentation
 		vector<string> operator()(const char* src)
 		{
 			vector<string> words;
-			_jieba.CutAll(src,words);
+			_jieba.CutForSearch(src,words);
 			return words;
 		}
 
