@@ -7,6 +7,8 @@
 #include "../include/WordQuery.h"
 #include "../include/MyConf.h"
 
+#include <json/json.h>
+
 #include <fstream>
 using std::ifstream;
 using std::make_pair;
@@ -93,7 +95,7 @@ void WordQuery::loadLibrary()
 	ifstream ifsInvertIndex(inverPath.c_str());	
 	if(!ifsInvertIndex.good())
 	{
-		cout << "open inverindextable failed" <<endl;
+		cout << "open invertindextable failed" <<endl;
 		return;
 	}
 	string word;
@@ -134,7 +136,7 @@ string WordQuery::doQuery(const string& str)
 		queryWords = _jieba(str.c_str());
 	}
 
-	auto stopWords = _jieba.getStopWordList();
+	auto& stopWords =MyConf::getInstance()->getStopWordList();
 #if 1
 	for(auto iter= queryWords.begin();iter!=queryWords.end();++iter)
 	{
@@ -149,155 +151,158 @@ string WordQuery::doQuery(const string& str)
 	if(queryWords.size()==0)
 		return returnNoAnswer();
 #endif 
-
-	for(auto item : queryWords)
+	
+	for(auto iter : queryWords)
 	{
-		cout << item << "#\t";
-		auto uit = _invertIndexTable.find(item);
+		cout << iter << "#\t";
+		auto uit = _invertIndexTable.find(iter);
 		if(uit == _invertIndexTable.end())
 		{
-			auto sit = stopWords.find(item);
+			auto sit = stopWords.find(iter);
 			if(sit == stopWords.end())
 			{
-		    	cout << "can't found " << item << endl;
-			    return returnNoAnswer();
+				cout << "can't found " << endl;
+				return returnNoAnswer();
 			}
 		}
 	}
 	cout << endl;
-	vector<double> weightList =getQueryWordsWeightVector(queryWords);
+	vector<double> weightList = getQueryWordsWeightVector(queryWords);
+	
 	SimilarityCompare similarityCmp(weightList);
-	vector<pair<int, vector<double> > > resultVec;
+	vector<pair<int,vector<double>>> resultVec;
 
-	if(executeQuery(queryWords, resultVec))
+	if(executeQuery(queryWords,resultVec))
 	{
-		stable_sort(resultVec.begin(), resultVec.end(), similarityCmp);
+		stable_sort(resultVec.begin(),resultVec.end(),similarityCmp);
 		vector<int> docIdVec;
-
 		for(auto item : resultVec)
 		{
 			docIdVec.push_back(item.first);
 		}
-		return createJson(docIdVec, queryWords);
+		return createJson(docIdVec,queryWords);
 	}
 	else
-	{
 		return returnNoAnswer();
-	}
 }
 
 vector<double> WordQuery::getQueryWordsWeightVector(vector<string> & queryWords)
 {
-	map<string, int> wordFreqMap;
-	for(auto item : queryWords)
+	int totalFiles = _pageLib.size();
+	
+	map<string,int> wordsMap;
+	for(auto& iter : queryWords)
 	{
-		++wordFreqMap[item];
+		++wordsMap[iter];	
 	}
+	
+	double weightsum = 0;
 	vector<double> weightList;
-	double weightSum = 0;
-	int totalPageNum = _offsetLib.size();
+	for(auto& iter : queryWords)
+	{
+		int df = _invertIndexTable[iter].size();
+		double idf = log(static_cast<double>(totalFiles/df))/log(2)+1;
+		int tf = wordsMap[iter];
+		double weight = idf * tf;
+		weightsum += pow(weight,2);
+		weightList.push_back(weight);
+	}
 
-	for(auto & item : queryWords)
-	{
-		int df = _invertIndexTable[item].size();
-		double idf = log(static_cast<double>(totalPageNum) / df + 0.05) / log(2); 
-		int tf = wordFreqMap[item];
-		double w = idf * tf;
-		weightSum += pow(w, 2);
-		weightList.push_back(w);
-	}
-	for(auto & item : weightList)
-	{
-		item /= sqrt(weightSum);
-	}
-	cout << "weightList's elem: ";
-	for(auto item : weightList)
-	{
-		cout << item << "\t";
-	}
+	for(auto& item : weightList)
+		item/=sqrt(weightsum);
+	cout << "weightList's elem : ";
+	for(auto iter :weightList)
+		cout << iter << "\t";
 	cout << endl;
 	return weightList;
 }
 
 string WordQuery::returnNoAnswer()
 {
-	return string("404 Not Found\n");
+	//return string("404 Not Found\n");
+
+	Json::Value root;
+	Json::Value arr;
+	
+	Json::Value elem;
+	elem["title"]="404,not found";
+	elem["summary"] = "亲,找不到，试试其他的关键词吧!";
+	elem["url"] = "";
+	arr.append(elem);
+	root["files"] = arr;
+	Json::StyledWriter writer;
+	return writer.write(root);
 }
 
 bool WordQuery::executeQuery(const vector<string>& queryWords,
 		vector<pair<int,vector<double>>>& resultVec)
 {
-	if(queryWords.size() == 0)
+	if(queryWords.size()==0)
 	{
-		cout << "empty string not found " << endl;
+		cout << "empty string , not found " << endl;
 		return false;
 	}
 
 	typedef set<pair<int,double>>::iterator setIter;
-	//typedef set<pair<int,double>> Set;
 	vector<pair<setIter,int>> iterVec;
 	vector<int> maxNum;
+
 	int minIterNum = 0x7FFFFFFF;
-
-	for(auto item : queryWords)
+		
+	for(auto& iter : queryWords)
 	{
-		int sz = _invertIndexTable[item].size();
-		if(sz==0)
+		int sz = _invertIndexTable[iter].size();
+		if(sz == 0)
 			return false;
-		//miniternum 迭代器能++的最大次数???
-		if(minIterNum > sz)
+		if(sz < minIterNum)
 			minIterNum = sz;
-
-		iterVec.push_back(make_pair(_invertIndexTable[item].begin(),0));
+		iterVec.push_back(make_pair(_invertIndexTable[iter].begin(),0));
 		maxNum.push_back(sz);
 	}
+
 	cout << "minIterNum = " << minIterNum << endl;
 
-	bool isExisting = false;
-	while(!isExisting)
+	bool isExiting = false;
+	
+	while(!isExiting)
 	{
-		size_t  idx = 0;
-
+		size_t idx=0;
 		for(;idx!=iterVec.size()-1;++idx)
 		{
-			if((iterVec[idx].first)->first != iterVec[idx+1].first->first)
+			if(iterVec[idx].first->first != iterVec[idx+1].first->first)
 				break;
 		}
 		if(idx == iterVec.size()-1)
 		{
-			// 找到的文档编号相同，将其放到resultVec中
 			vector<double> weightVec;
 			int docId = iterVec[0].first->first;
 
 			for(idx=0;idx!=iterVec.size();++idx)
 			{
 				weightVec.push_back(iterVec[idx].first->second);
-				++(iterVec[idx].first);  
+				++(iterVec[idx].first);
 				++(iterVec[idx].second);
-				//如果查找的次数超过出现最少的字符的次数，那么结束查找
 				if(iterVec[idx].second == minIterNum)
-				{ isExisting = true; }
+					isExiting = true;
 			}
 			resultVec.push_back(make_pair(docId,weightVec));
 		}
 		else
 		{
-			int minDocId = 0x7FFFFFFF;
+			int minDocid = 0x7FFFFFFF;
 			int iterIdx;
 			for(idx=0;idx!=iterVec.size();++idx)
 			{
-				if(iterVec[idx].first->first < minDocId)
+				if(iterVec[idx].first->first < minDocid)
 				{
-					minDocId = iterVec[idx].first->first;
+					minDocid = iterVec[idx].first->first;
 					iterIdx = idx;
 				}
 			}
 			++(iterVec[iterIdx].first);
-			//这里有问题，最小docid为控制循环的退出的条件是最小查询的次数?
-			//所以我在前面增加了一个vector用来保存每个关键字对应的set的大小
 			++(iterVec[iterIdx].second);
 			if(iterVec[iterIdx].second == maxNum[iterIdx])
-			{ isExisting = true; }
+				isExiting = true;
 		}
 	}
 	return true;
@@ -305,7 +310,12 @@ bool WordQuery::executeQuery(const vector<string>& queryWords,
 
 string WordQuery::createJson(vector<int>& docIdVec,const vector<string>& queryWords)
 {
-	string result;
+	Json::Value root;
+	Json::Value arr;
+
+	int cnt =0;
+	
+	 //string result;
 	for(auto id : docIdVec)
 	{
 		auto  webpage  = _pageLib.find(id);
@@ -316,11 +326,23 @@ string WordQuery::createJson(vector<int>& docIdVec,const vector<string>& queryWo
 		//	string url = _pageLib[id].getUrl();
 			string title = webpage->second.getTitle();
 			string url = webpage->second.getUrl();
-			result.append(title).append("\n").append(url).append("\n")
-			.append(summary).append("\n");
+		
+			Json::Value elem;
+	
+			elem["title"] = title;
+			elem["summary"] = summary;
+			elem["url"] = url;
+			arr.append(elem);
+			if(++cnt == 20)
+				break;
+			//result.append(title).append("\n").append(url).append("\n")
+			//.append(summary).append("\n");
 		}
 	}
-	return result;
+
+	root["files"] = arr;
+	Json::StyledWriter writer;
+	return writer.write(root);
 }
 
 

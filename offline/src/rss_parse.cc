@@ -25,6 +25,7 @@ RssReader::RssReader()
 
 	_dir.openDir(dir);
 	_files = _dir.getFiles();
+
 }
 
 
@@ -110,15 +111,15 @@ void RssReader::dump()
 
 	auto confMap = MyConf::getInstance()->getConfigMap();
 	cout << "ripepagelib = " <<  confMap["ripepagelib"] << endl;
-	std::ofstream ofs(confMap["ripepagelib"],std::ios::app);
+	std::ofstream ofs(confMap["ripepagelib"]);
 	//std::ofstream ofs(confMap["ripepagelib"]);
 	
 	cout << "offsetlib = " <<  confMap["offsetlib"] << endl;
-	std::ofstream offset(confMap["offsetlib"],std::ios::app);
+	std::ofstream offset(confMap["offsetlib"]);
 
-	if(!ofs.good())
+	if(!ofs.good() || !offset.good())
 	{
-		cout << "open failed" <<endl;
+		cout << "open pagelib or offsetlib failed" <<endl;
 		return ;
 	}
 	string doc;

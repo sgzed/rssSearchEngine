@@ -24,11 +24,11 @@ using std::vector;
 using std::ifstream;
 using std::istringstream;
 
-		const char * const DICT_PATH = "/home/sgzed/cppjieba/dict/jieba.dict.utf8";
-		const char * const HMM_PATH = "/home/sgzed/cppjieba/dict/hmm_model.utf8";
-		const char * const USER_DICT_PATH = "/home/sgzed/cppjieba/dict/user.dict.utf8";
-		const char * const IDF_PATH ="/home/sgzed/cppjieba/dict/idf.utf8";
-		const char * const STOP_WORD_PATH ="/home/sgzed/cppjieba/dict/stop_words.utf8";
+const char * const DICT_PATH = "/home/sgzed/cppjieba/dict/jieba.dict.utf8";
+const char * const HMM_PATH = "/home/sgzed/cppjieba/dict/hmm_model.utf8";
+const char * const USER_DICT_PATH = "/home/sgzed/cppjieba/dict/user.dict.utf8";
+const char * const IDF_PATH ="/home/sgzed/cppjieba/dict/idf.utf8";
+const char * const STOP_WORD_PATH ="/home/sgzed/cppjieba/dict/stop_words.utf8";
 
 class WordSegmentation
 {
@@ -36,19 +36,6 @@ class WordSegmentation
 		WordSegmentation()
 			:_jieba(DICT_PATH,HMM_PATH,USER_DICT_PATH,IDF_PATH,STOP_WORD_PATH)
 		{
-			ifstream ifs(STOP_WORD_PATH);	
-
-			string line;
-
-			while(getline(ifs,line))
-			{
-				istringstream iss(line);
-				string word;
-				iss >> word;
-				cout <<  word << " " ;
-				stopWordList.insert(word);
-			}
-			cout << endl;
 			cout << "jieba init" << endl;
 		}
 
@@ -64,11 +51,7 @@ class WordSegmentation
 			_jieba.extractor.Extract(doc,keywords,k);	
 		}
 
-		set<string>& getStopWordList()
-		{ return stopWordList;} 
-
 	private:
-		set<string>  stopWordList;
 		cppjieba::Jieba _jieba;
 };
 

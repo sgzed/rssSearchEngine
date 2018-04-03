@@ -67,6 +67,7 @@ void SearchServer::doTaskThread(const TcpConnectionPtr& conn,const std::string& 
 	int  sz = ret.size();
 	LOG_INFO << "reply " << sz << " bytes ";
 	conn->send(ret);
+	conn->shutdown();
 }
 
 

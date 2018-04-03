@@ -65,32 +65,33 @@ void Preprocessor::readInfoFromFile()
 
 		_offsetLib.insert(std::make_pair(docId,std::make_pair(docOffset,docLen)));
 	}
-	
+#if 1	
 	for(auto mit : _offsetLib)
 	{
 		cout << mit.first<< "--> " << "(" << mit.second.first << "," << mit.second.second<< ")"
 			<< endl;
 	}
-	
+#endif 
 }
 
 void Preprocessor::cutRedundantPages() 
 {
 	int cnt = 0; 
-//	for(size_t idx=0;idx != _pageLib.size()-1 ; ++idx)
-//	{
-//		 for(size_t j = idx+1; j!=_pageLib.size();++j)
-//	    {
-//	    	if(_pageLib[idx] == _pageLib[j])	
-//	    	{
-//	    		_pageLib[j] = _pageLib[_pageLib.size()-1];
-//	    		_pageLib.pop_back();
-//	    		--j;
-//	    		++cnt;
-//	    	}
-//	    }
-//	}
-	
+#if 0
+	for(size_t idx=0;idx != _pageLib.size()-1 ; ++idx)
+	{
+		 for(size_t j = idx+1; j!=_pageLib.size();++j)
+	    {
+	    	if(_pageLib[idx] == _pageLib[j])	
+	    	{
+	    		_pageLib[j] = _pageLib[_pageLib.size()-1];
+	    		_pageLib.pop_back();
+	    		--j;
+	    		++cnt;
+	    	}
+	    }
+	}
+#endif 	
 	vector<uint64_t> simHashs;
 	simHashs.reserve(_pageLib.size());
 	cout << "pagelib.size()  =  "  << _pageLib.size() << endl;
@@ -115,53 +116,56 @@ void Preprocessor::cutRedundantPages()
 	cout << "the number of redundantpages is " << cnt << endl;  
 }
 
-
 void Preprocessor::buildInvertIndexTable()
 {
-	for(auto page : _pageLib)	
+	
+	for(auto& page : _pageLib)
 	{
-		map<string,int>& wordsMap = page.getWordsMap();
-		for(auto wordFreq : wordsMap)	
+		auto& wordsMap = page.getWordsMap();
+		cout << wordsMap.size() << endl;
+		for(auto word : wordsMap)
 		{
-			_invertIndexTable[wordFreq.first].push_back(std::make_pair(
-						page.getDocId(),wordFreq.second));	
-		}
-	}
-	map<int,double> weightSum;
-
-	int totalPageNum = _pageLib.size();
-	for(auto& item : _invertIndexTable)
-	{
-		int df = item.second.size();
-		double idf=log(static_cast<double>(totalPageNum)/df)/log(2)+1;
-
-		for(auto& sitem : item.second)
-		{
-			double weight = sitem.second*idf;
-			weightSum[sitem.first] += pow(weight,2);
-			sitem.second = weight;
+			cout << "string = " << word.first;
+			_invertIndexTable[word.first].push_back(std::make_pair(page.getDocId(),word.second));
 		}
 	}
 
-	for(auto & iter : _invertIndexTable)
+	size_t totalFiles = _pageLib.size();
+
+	map<int,double> weightsum;
+
+	for(auto & index : _invertIndexTable)
 	{
-		for(auto & sitem : iter.second)
+		int df  = _invertIndexTable[index.first].size();
+		int idf = log(static_cast<double>(totalFiles)/df)/log(2) +1 ;
+		for(auto & sitem : index.second)
 		{
-			sitem.second = sitem.second/sqrt(weightSum[sitem.first]);
+		    double weight = sitem.second * idf;
+			weightsum[sitem.first] +=  pow(weight,2);
+			sitem.second =weight;
+		}
+	}
+	
+	for(auto& iter : _invertIndexTable)
+	{
+		for(auto& siter : iter.second)
+		{
+			siter.second = siter.second / sqrt(weightsum[siter.first]);
 		}
 	}
 
+	cout << "_invertIndexTable.size() = " << _invertIndexTable.size() << endl;
 #if 1
-	for(auto iter : _invertIndexTable)
+	for(auto iter :_invertIndexTable)
 	{
-		cout << iter.first << "\t" ;
+		cout << iter.first << "\t";
 		for(auto siter : iter.second)
-			cout << siter.first << "\t" << siter.second << "\t";
+		{
+			cout << siter.first <<"\t" << siter.second << "\t" ;
+		}
 		cout << endl;
 	}
-
 #endif
-
 }
 
 void Preprocessor::storeOnDisk()

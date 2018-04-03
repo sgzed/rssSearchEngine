@@ -53,10 +53,12 @@ void WebPage::processDoc(const string& doc,WordSegmentation& jieba)
 	
 	vector<string> wordsVec = jieba(_docContent.c_str());
 
+	set<string>& stopWords = MyConf::getInstance()->getStopWordList();
+
 	for(auto& word : wordsVec)
 	{
-		auto sit = jieba.getStopWordList().find(word);
-		if(sit == jieba.getStopWordList().end())
+		auto sit = stopWords.find(word);
+		if(sit == stopWords.end())
 			++_wordsMap[word];
 	}
 	

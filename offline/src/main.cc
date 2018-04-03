@@ -13,10 +13,12 @@ int main()
 {
 	MyConf::getInstance()->show();
 
-//	RssReader rssrd;
-//	rssrd.loadFeedFiles();
-//	rssrd.dump();
-	
+#if 1	
+	RssReader rssrd;
+	rssrd.loadFeedFiles();
+	rssrd.dump();
+#endif
+
 	Preprocessor processor = Preprocessor();
 	processor.doProcess();
 

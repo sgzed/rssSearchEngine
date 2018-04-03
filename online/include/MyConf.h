@@ -12,8 +12,10 @@
 #include <assert.h>
 
 #include <map>
+#include <set>
 #include <string>
 using std::map;
+using std::set;
 using std::string;
 
 class MyConf 
@@ -23,6 +25,8 @@ public:
 	static void init();
 	void show(); 
 	map<string,string>& getConfigMap();
+	set<string>& getStopWordList();
+
 private:
 	MyConf()
 	{}
@@ -34,6 +38,7 @@ private:
 	{ delete _value;}
 
 	static map<string,string> _configMap;
+	static set<string> _stopWordList;
 	static pthread_once_t _ponce; 
 	static MyConf* _value;
 };

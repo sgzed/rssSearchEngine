@@ -9,7 +9,7 @@ CXXFLAGS = -g -std=c++11 -Wall -Wextra -Werror \
 		   -Wno-unused-parameter  \
 		   -march=native -rdynamic \
 
-LDFLAGS = -L$(MUDUO_LIBRARY) -L/usr/local/lib -lmuduo_net -lmuduo_base -lpthread -lhiredis -lrt
+LDFLAGS = -L$(MUDUO_LIBRARY) -L/usr/local/lib -ljson -lmuduo_net -lmuduo_base -lpthread -lhiredis -lrt
 
 all: searchServer
 clean:

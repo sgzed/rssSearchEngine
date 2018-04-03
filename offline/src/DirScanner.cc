@@ -4,7 +4,7 @@
  /// @date    2018-03-31 11:07:01
  ///
 
-#include "DirScanner.h"
+#include "../include/DirScanner.h"
 
 #include <sys/types.h>
 #include <dirent.h>

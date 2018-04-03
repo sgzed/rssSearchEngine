@@ -4,7 +4,7 @@
 /// @date    2018-03-26 21:43:47
 ///
 
-#include "MyConf.h"
+#include "../include/MyConf.h"
 
 #include <string>
 #include <fstream>
@@ -18,9 +18,13 @@ using std::istringstream;
 
 map<string,string> MyConf::_configMap ;
 
+set<string> MyConf::_stopWordList;
+
 pthread_once_t MyConf::_ponce = PTHREAD_ONCE_INIT;
 
 MyConf* MyConf::_value =NULL;
+
+const char * const STOP_WORD_PATH ="/home/sgzed/cppjieba/dict/stop_words.utf8";
 
 MyConf* MyConf::getInstance()
 {
@@ -50,6 +54,20 @@ void MyConf::init()
 		}
 		ifs.close();
 	}
+	
+	ifstream stopifs(STOP_WORD_PATH);	
+
+	//string line;
+
+	while(getline(stopifs,line))
+	{
+		istringstream iss(line);
+		string word;
+		iss >> word;
+		cout <<  word << " " ;
+		_stopWordList.insert(word);
+	}
+	cout << endl;
 	::atexit(destroy);
 }
 
@@ -63,4 +81,10 @@ void MyConf::show()
 	for(auto iter : _configMap)
 		cout <<  iter.first << " " << iter.second << endl;;
 }
+
+set<string>& MyConf::getStopWordList()
+{
+	return _stopWordList;
+}
+
 
